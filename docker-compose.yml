@@ -1,0 +1,19 @@
+version: "1.0"
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      - ./.env
+    # environment:
+    #   POSTGRES_DB: "lang_learner_db"
+    #   POSTGRES_USER: "lang_learner_user"
+    #   POSTGRES_PASSWORD: "lang_learner_password"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
