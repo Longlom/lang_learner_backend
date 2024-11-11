@@ -1,4 +1,5 @@
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use warp::Filter;
 
 #[derive(Clone, Debug)]
 pub struct Database {
@@ -7,14 +8,6 @@ pub struct Database {
 
 impl  Database {
     pub async fn init() -> Self {
-        // let database_url = match std::env::var("DATABASE_URL") {
-        //     Ok(url) => url,
-        //     Err(err) => {
-        //         log::error!("Cannot find DATABASE_URL variable {}", err);
-        //         panic!();
-        //     }
-        // };
-
         let db_name = match std::env::var("POSTGRES_DB") {
             Ok(url) => url,
             Err(err) => {
@@ -56,5 +49,10 @@ impl  Database {
         Self {
             conn_pool: pool,
         }
+    }
+
+
+    pub fn with_db(db: Self) -> impl Filter<Extract = (Self,), Error = std::convert::Infallible> + Clone {
+        warp::any().map(move || db.clone())
     }
 }

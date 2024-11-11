@@ -817,10 +817,12 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 name = "lang_learner_backend"
 version = "0.1.0"
 dependencies = [
+ "base64ct",
  "dotenv",
  "log",
  "pretty_env_logger",
  "serde",
+ "sha2",
  "sqlx",
  "tokio",
  "warp",

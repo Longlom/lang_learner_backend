@@ -3,6 +3,7 @@ pub mod db;
 
 
 use std::env;
+use db::Database;
 use dotenv::dotenv;
 use auth::{json_register_body, register};
 use warp::Filter;
@@ -22,6 +23,7 @@ async fn main() {
         .and(warp::path("register"))
         .and(warp::post())
         .and(json_register_body())
+        .and(Database::with_db(db.clone()))
         .and_then(register)
         .with(warp::log("lang_learner_backend::auth"));
 
