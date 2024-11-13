@@ -1,17 +1,13 @@
 pub mod auth;
 pub mod db;
 
-
-use std::env;
+use auth::{json_register_body, login, register, LoginPayload};
 use db::Database;
 use dotenv::dotenv;
-use auth::{json_register_body, register};
 use warp::Filter;
-
 
 #[tokio::main]
 async fn main() {
-
     dotenv().ok();
     pretty_env_logger::init();
 
@@ -27,7 +23,14 @@ async fn main() {
         .and_then(register)
         .with(warp::log("lang_learner_backend::auth"));
 
-    let routes = register_path;
+    let login_path = api_path
+        .and(warp::path("login"))
+        .and(warp::get())
+        .and(warp::query::<LoginPayload>())
+        .and(Database::with_db(db.clone()))
+        .and_then(login);
+
+    let routes = register_path.or(login_path);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3000)).await;
 }
