@@ -1,66 +1,21 @@
 use std::convert::Infallible;
 
-use crate::db::Database;
 use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Duration, Local};
 use jwt::{token::Signed, Header, SignWithKey, Token};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use hmac::{Hmac, Mac};
-use warp::{http::StatusCode, reply::Reply, Filter};
+use warp::{http::StatusCode, reply::Reply};
 
-const ALLOWED_LANGUAGE: [&str; 2] = ["VN", "CH"];
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct RegisterPayload {
-    login: String,
-    password: String,
-    name: String,
-    language: String,
-}
-
-pub fn json_register_body(
-) -> impl Filter<Extract = (RegisterPayload,), Error = warp::Rejection> + Clone {
-    warp::body::content_length_limit(1024 * 16).and(warp::body::json())
-}
-
-pub async fn register(payload: RegisterPayload, db: Database) -> Result<impl Reply, Infallible> {
-    log::debug!("register: {:?}", payload);
-
-    if !ALLOWED_LANGUAGE.contains(&payload.language.as_str()) {
-        return Ok(StatusCode::BAD_REQUEST);
-    }
-
-    let hash = Sha256::digest(&payload.password);
-    let password_hash = Base64::encode_string(&hash);
-
-    match sqlx::query(
-        "INSERT INTO users (password, login, username, language)
-    VALUES ($1, $2, $3, $4::language)",
-    )
-    .bind(&password_hash)
-    .bind(&payload.login)
-    .bind(&payload.name)
-    .bind(&payload.language)
-    .execute(&db.conn_pool)
-    .await
-    {
-        Ok(result) => {
-            log::debug!("Successfully created user- {}", result.rows_affected());
-        }
-        Err(err) => {
-            log::error!("Error happened while creating user - {}", err);
-            return Ok(StatusCode::INTERNAL_SERVER_ERROR);
-        }
-    };
-    return Ok(StatusCode::CREATED);
-}
+use crate::db::{db::Database, types::Language};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct LoginPayload {
     login: Option<String>,
     password: Option<String>,
 }
+
 
 #[derive(sqlx::FromRow, Clone, Deserialize, Serialize)]
 pub struct UserData {
@@ -69,12 +24,6 @@ pub struct UserData {
     language: Language,
 }
 
-#[derive(sqlx::Type, Clone, Copy, Deserialize, Serialize, Debug)]
-#[sqlx(type_name = "language")]
-enum Language {
-    VN,
-    CH,
-}
 type JwtToken = Token<Header, TokenData, Signed>;
 
 type Time = DateTime<Local>;
@@ -135,6 +84,8 @@ impl TokensData {
     }
 }
 
+
+
 fn create_token(user: UserData) -> Result<TokensData, StatusCode> {
     let key_str = match std::env::var("KEY") {
         Ok(key_str) => key_str,
@@ -192,6 +143,7 @@ fn create_token(user: UserData) -> Result<TokensData, StatusCode> {
 
     Ok(response)
 }
+
 
 pub async fn login(
     login_payload: LoginPayload,
